@@ -1,0 +1,6 @@
+*.class
+*.log
+*.aux
+*.out
+*.tokens
+.idea/

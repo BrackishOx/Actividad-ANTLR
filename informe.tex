@@ -1,0 +1,173 @@
+\documentclass[12pt]{article}
+
+\usepackage[spanish]{babel}
+\usepackage[utf8]{inputenc}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{geometry}
+\geometry{a4paper, margin=2.5cm}
+
+\title{Implementación de la Calculadora del Capítulo 4 en ANTLR}
+\author{Santiago Céspedes}
+\date{\today}
+
+\definecolor{codegray}{rgb}{0.95,0.95,0.95}
+
+\lstset{
+    backgroundcolor=\color{codegray},
+    basicstyle=\ttfamily\small,
+    breaklines=true,
+    frame=single
+}
+
+\begin{document}
+
+\maketitle
+
+\section{Objetivo}
+
+Implementar una calculadora aritmética utilizando ANTLR 4.13.2 con Java como lenguaje objetivo, aplicando el patrón \textit{Visitor} explicado en el Capítulo 4. La calculadora permite evaluar expresiones con suma, resta, multiplicación, división, paréntesis y asignación de variables.
+
+\section{Instalación y Configuración del Entorno}
+
+El proyecto se desarrolló en WSL (Ubuntu en Windows).
+
+\subsection*{Instalación de Java}
+
+\begin{lstlisting}[language=bash]
+sudo apt update
+sudo apt install openjdk-17-jdk -y
+\end{lstlisting}
+
+\subsection*{Verificación}
+
+\begin{lstlisting}[language=bash]
+java -version
+\end{lstlisting}
+
+\subsection*{Instalación de ANTLR}
+
+Se configuró el archivo \texttt{antlr-4.13.2-complete.jar} en el sistema y se creó el alias:
+
+\begin{lstlisting}[language=bash]
+alias antlr4='java -jar /usr/local/lib/antlr-4.13.2-complete.jar'
+\end{lstlisting}
+
+\section{Diseño de la Gramática}
+
+Se creó el archivo \texttt{Calc.g4} con la siguiente estructura:
+
+\begin{lstlisting}
+grammar Calc;
+
+prog:   stat+ ;
+
+stat:   expr NEWLINE                # printExpr
+    |   ID '=' expr NEWLINE         # assign
+    |   NEWLINE                     # blank
+    ;
+
+expr:   expr op=('*'|'/') expr      # MulDiv
+    |   expr op=('+'|'-') expr      # AddSub
+    |   INT                         # int
+    |   ID                          # id
+    |   '(' expr ')'                # parens
+    ;
+
+MUL :   '*' ;
+DIV :   '/' ;
+ADD :   '+' ;
+SUB :   '-' ;
+ID  :   [a-zA-Z]+ ;
+INT :   [0-9]+ ;
+NEWLINE:'\r'? '\n' ;
+WS  :   [ \t]+ -> skip ;
+\end{lstlisting}
+
+La gramática define:
+
+\begin{itemize}
+    \item Reglas sintácticas para expresiones aritméticas.
+    \item Precedencia correcta de operadores.
+    \item Tokens léxicos para números, identificadores y operadores.
+\end{itemize}
+
+\section{Generación del Parser}
+
+Se generó el parser y visitor con el siguiente comando:
+
+\begin{lstlisting}[language=bash]
+antlr4 -visitor Calc.g4
+\end{lstlisting}
+
+Archivos generados:
+\begin{itemize}
+    \item CalcLexer.java
+    \item CalcParser.java
+    \item CalcBaseVisitor.java
+    \item CalcVisitor.java
+\end{itemize}
+
+\section{Implementación del Visitor}
+
+Se creó la clase \texttt{EvalVisitor.java} que extiende \texttt{CalcBaseVisitor<Integer>}.
+
+El visitor evalúa recursivamente las expresiones y utiliza un \texttt{HashMap} para almacenar variables.
+
+Ejemplo del método para suma y resta:
+
+\begin{lstlisting}[language=Java]
+@Override
+public Integer visitAddSub(CalcParser.AddSubContext ctx) {
+    int left = visit(ctx.expr(0));
+    int right = visit(ctx.expr(1));
+    if (ctx.op.getType() == CalcParser.ADD) 
+        return left + right;
+    return left - right;
+}
+\end{lstlisting}
+
+\section{Clase Principal}
+
+Se implementó la clase \texttt{Main.java} para ejecutar el parser:
+
+\begin{lstlisting}[language=Java]
+CharStream input = CharStreams.fromStream(System.in);
+CalcLexer lexer = new CalcLexer(input);
+CommonTokenStream tokens = new CommonTokenStream(lexer);
+CalcParser parser = new CalcParser(tokens);
+
+ParseTree tree = parser.prog();
+EvalVisitor eval = new EvalVisitor();
+eval.visit(tree);
+\end{lstlisting}
+
+\section{Compilación}
+
+\begin{lstlisting}[language=bash]
+javac -cp ".:/usr/local/lib/antlr-4.13.2-complete.jar" *.java
+\end{lstlisting}
+
+\section{Ejecución}
+
+\begin{lstlisting}[language=bash]
+java -cp ".:/usr/local/lib/antlr-4.13.2-complete.jar" Main
+\end{lstlisting}
+
+Ejemplo de ejecución:
+
+\begin{lstlisting}
+3+4*2
+\end{lstlisting}
+
+Salida:
+
+\begin{lstlisting}
+11
+\end{lstlisting}
+
+\section{Conclusiones}
+
+Se logró implementar correctamente la calculadora utilizando ANTLR y el patrón Visitor en Java. El sistema respeta la precedencia de operadores y permite asignación de variables. La integración entre el lexer, parser y visitor demuestra el funcionamiento completo de un pequeño intérprete aritmético.
+
+\end{document}
