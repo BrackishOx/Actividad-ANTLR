@@ -1,4 +1,4 @@
-# Calculadora ANTLR e
+# Calculadora ANTLR 
 
 Implementación de la calculadora del Capítulo 4 usando ANTLR 4.13.2 con Java.
 
